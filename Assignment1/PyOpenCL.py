@@ -1,14 +1,28 @@
+#!/usr/bin/env python
+
+"""
+.
+.
+.
+Python Code
+.
+.
+.
+"""
 """
 The code in this file is part of the instructor-provided template for Assignment-1, Fall 2024. 
 """
 
-# import clModule
+import clModule
+import numpy as np
+from clModule import clModule
+import matplotlib.pyplot as plt
 # import relevant libraries
 
 
 if __name__ == "__main__":
     # List all main methods
-    all_main_methods = ['CPU numpy Add', 'CPU_Loop_Add', 'DeviceAdd', 'BufferAdd']
+    all_main_methods = ['CPU_numpy_Add', 'CPU_Loop_Add', 'DeviceAdd', 'BufferAdd']
     # List the two operations
     all_operations = ['Pass Vector and Number', 'Pass Two Vectors']
     # List the size of vectors
@@ -41,6 +55,11 @@ if __name__ == "__main__":
         arr_avg_total_cpu_loop_time = np.array([])
         # [TODO: Students should write Code]
         # Add for the rest of the methods
+        arr_avg_total_device_time = np.array([])
+        arr_avg_total_buffer_time = np.array([])
+        #arr_avg_total_device_no_transfer_time = np.array([])
+        #arr_avg_total_buffer_no_transfer_time = np.array([])
+
         
         for vector_size in valid_vector_sizes:
 
@@ -49,6 +68,10 @@ if __name__ == "__main__":
 
             # [TODO: Students should write Code]
             # Add for the rest of the methods
+            arr_total_device_time = np.array([])
+            arr_total_buffer_time = np.array([])
+            arr_total_device_no_transfer_time = np.array([])
+            arr_total_buffer_no_transfer_time = np.array([])
 
             print ("vectorlength")
             print (vector_size)
@@ -66,7 +89,7 @@ if __name__ == "__main__":
                     else:
                         is_b_a_vector = True
                         b_in = b_array_np
-                    if(current_method == 'CPU numpy Add'):
+                    if(current_method == 'CPU_numpy_Add'):
                         c_np_cpu_add, cpu_time_add = graphicscomputer.CPU_numpy_Add(a_array_np,b_in,vector_size,is_b_a_vector)
                         arr_total_cpu_time = np.append(arr_total_cpu_time, cpu_time_add)
                     else:
@@ -77,7 +100,21 @@ if __name__ == "__main__":
                         
                         # [TODO: Students should write Code]
                         # Add for the rest of the methods
-                       
+
+                        if (current_method == 'DeviceAdd'):
+                            c_np_device_add, device_time_add = graphicscomputer.deviceAdd(a_array_np,b_in,vector_size,is_b_a_vector)
+                            arr_total_device_time = np.append(arr_total_device_time, device_time_add)
+                            sum_diff = c_np_device_add - c_np_cpu_add
+
+                        if (current_method == 'BufferAdd'):
+                            c_np_buffer_add, buffer_time_add = graphicscomputer.bufferAdd(a_array_np,b_in,vector_size,is_b_a_vector)
+                            arr_total_buffer_time = np.append(arr_total_buffer_time, buffer_time_add)
+                            sum_diff = c_np_buffer_add - c_np_cpu_add
+                                    
+
+
+
+
                         total_diff = sum_diff.sum()
                         if (total_diff != 0):
                             print (current_method + " " + current_operation + "sum mismatch")
@@ -88,10 +125,34 @@ if __name__ == "__main__":
             arr_avg_total_cpu_loop_time = np.append(arr_avg_total_cpu_loop_time, avg_total_cpu_loop_time)
             # [TODO: Students should write Code]
             # Add for the rest of the methods
-        print(current_operation + "The CPU times are")
+            avg_total_device_time = ((arr_total_device_time.sum())/50)
+            arr_avg_total_device_time = np.append(arr_avg_total_device_time, avg_total_device_time)
+            avg_total_buffer_time = ((arr_total_buffer_time.sum())/50)
+            arr_avg_total_buffer_time = np.append(arr_avg_total_buffer_time, avg_total_buffer_time)
+
+        print(current_operation + " The CPU times are")
         print(arr_avg_total_cpu_time)
         print(current_operation + " The CPU Loop times are")
         print(arr_avg_total_cpu_loop_time)
         # [TODO: Students should write Code]
         # Add for the rest of the methods
-        # Code for Plotting the results 
+        print(current_operation + " The Device times are")
+        print(arr_avg_total_device_time)
+        print(current_operation + " The Buffer times are")
+        print(arr_avg_total_buffer_time)
+
+
+        # Code for Plotting the results
+        plt.figure()
+        plt.loglog(valid_vector_sizes, arr_avg_total_cpu_time, label='CPU numpy Add')
+        plt.loglog(valid_vector_sizes, arr_avg_total_device_time, label='DeviceAdd')
+        plt.loglog(valid_vector_sizes, arr_avg_total_buffer_time, label='BufferAdd')
+        #plt.loglog(valid_vector_sizes, arr_avg_total_device_no_transfer_time, label='DeviceAddNoTransfer')
+        #plt.loglog(valid_vector_sizes, arr_avg_total_buffer_no_transfer_time, label='BufferAddNoTransfer')
+
+        plt.xlabel('Vector Size')
+        plt.ylabel('Average Execution Time (s)')
+        plt.title(f'Execution Time vs Vector Size ({current_operation})')
+        plt.legend()
+        plt.xticks(valid_vector_sizes, [f'$10^{int(np.log10(size))}$' for size in valid_vector_sizes])
+        plt.show() 
