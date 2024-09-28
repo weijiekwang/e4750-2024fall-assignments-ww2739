@@ -1,5 +1,17 @@
+#!/usr/bin/env python
+
 """
-The code in this file is part of the instructor-provided template for Assignment-1, Fall 2024. 
+.
+.
+.
+Python Code
+.
+.
+.
+"""
+
+"""
+The code in this file is part of the instructor-provided template for Assignment-1, Fall 2024.
 """
 
 # import relevant libraries
@@ -19,38 +31,19 @@ class clModule:
         # Get platform and device property
         NAME = 'NVIDIA CUDA'
         platforms = cl.get_platforms()
-        
-        # Returns a list of platform instances and stores it in a string vector called platforms.
-        # Basically gets all components on pc that supports and creates a pyopencl.platforms() instance with name platforms.
-        # This platforms is a string vector, with many elements, each element being an instance of GPU, or CPU or any other supported opencl platform.
-        # Each of these elements obtained using get_platforms() themselves have attributes (defined already on the device like gpu driver binding to PC)
-        # These attributes specifies if it is of type CPU, GPU (mentioned in here as device), etc.
 
         devs = None
-        # Initialize devs to None, basically we are creating a null list.
-        # Then we go through each element of this platforms vector. Each such element has a method get_devices() defined on it.
-        # This will populate the available processors (like number of available GPU threads etc)
         for platform in platforms:
             if platform.name == NAME:
                 devs = platform.get_devices()
 
         # Create Context:
-        # A context is an abstraction for parallel computation. pyopencl.context() method operates on input device and generates an instance of context (here we name it ctx)
-        # All variables and operations will be bound to a context as an input argument for opencl functions. This way we can choose explicitly which device we want the code to run on through openCL.
-        # Here devs contains devices (GPU threads) and hence the context self.ctx holds information of, and operates on GPU threads.
         self.ctx = cl.Context(devs)
 
         # Setup Command Queue:
-        # A command queue is used to explicitly specify queues within a context. Context by itself has methods pass information from host memory to device memory and vice versa.
-        # But a queue can be used to have fine grained control on which part of the data should be accessed in which sequence or order, or acts as a control on the data flow.
-        # Here pyopencl.CommandQueue takes in input context and sets some properties (used for enabling debugging options etc), creates a commandqueue bound to this context and stores it to self.queue
         self.queue = cl.CommandQueue(self.ctx, properties=cl.command_queue_properties.PROFILING_ENABLE)
-        
+
         # kernel - will not be provided for future assignments!
-        # The arguments (output:c and inputs:a,b) stored in global memory are passed with __global type. The other argument n, containing the number of elements is additionally passed
-        # with a qualifier const to allow the compiler to optimize for it (it is the same value that is to be passed to each thread)
-        # get_global_id will get the Global Item ID (equivalent to thread ID in cuda) for the current instance.
-        # The if condition before the actual computation is for bounds checking to ensure threads donot operate on invalid indexes.
         kernel_code = """
 
             __kernel void Add_two_vectors_GPU(__global float* c, __global float* a, __global float* b, const unsigned int n){
@@ -64,16 +57,13 @@ class clModule:
             __kernel void Add_to_each_element_GPU(__global float* c, __global float* a, float b, const unsigned int n){
 
                 unsigned int i = get_global_id(0);
-                if (i<n){
+                if (i < n){
                     c[i] = a[i] + b;
                 }
             }
-        """ 
-        
+        """
+
         # Build kernel code
-        # The context (which holds the GPU on which the code should run in) and the kernel code (stored as a string, allowing for metaprogramming if required) are passed onto cl.Program.
-        # pyopencl.Program(context,kernelcode).build is similar to sourceModule in Cuda and it returns the kernel function (equivalent of compiled code) that we can pass inputs to.
-        # This is stored in self.prg the same way in cuda it is stored in func.
         self.prg = cl.Program(self.ctx, kernel_code).build()
 
     def deviceAdd(self, a, b, length, is_b_a_vector):
@@ -88,29 +78,27 @@ class clModule:
             c       :   vector sum of arguments a and b
             time_   :   execution time for pocl function 
         """
-        # [TODO: Students should write code for the entire method for both cases of is_b_a_vector]
         # device memory allocation
         t_start = time.time()
         a_device = cl_array.to_device(self.queue, a)
         c_device = cl_array.empty_like(a_device)
         # execute operation.
-        if (is_b_a_vector == True):
+        if is_b_a_vector:
             # Use `Add_two_vectors_GPU` Kernel.
             b_device = cl_array.to_device(self.queue, b)
-            self.prg.Add_two_vectors_GPU(self.queue, length, None, c_device.data, a_device.data, b_device.data, np.uint32(length))
+            event = self.prg.Add_two_vectors_GPU(self.queue, (length,), None, c_device.data, a_device.data, b_device.data, np.uint32(length))
         else:
             # Use `Add_to_each_element_GPU` Kernel
-            self.prg.Add_to_each_element_GPU(self.queue, length, None, c_device.data, a_device.data, np.float32(b), np.uint32(length))
+            event = self.prg.Add_to_each_element_GPU(self.queue, (length,), None, c_device.data, a_device.data, np.float32(b), np.uint32(length))
 
         # wait for execution to complete.
-        self.queue.finish()
+        event.wait()
         # Copy output from GPU to CPU [Use .get() method]
         c = c_device.get()
         # Record execution time.
-        time_=  time.time() - t_start
+        time_ = time.time() - t_start
         # return a tuple of output of addition and time taken to execute the operation.
-        return c, time_
-        #pass
+        return (c, time_)
 
     def bufferAdd(self, a, b, length, is_b_a_vector):
         """
@@ -119,14 +107,13 @@ class clModule:
             c               :    vector sum of arguments a and b
             end - start     :    execution time for pocl function 
         """
-        # [TODO: Students should write code for the entire method for both cases of is_b_a_vector]
         # Create three buffers (plans for areas of memory on the device)
         m_flag = cl.mem_flags
         start = time.time()
         a_buffer = cl.Buffer(self.ctx, m_flag.READ_ONLY | m_flag.COPY_HOST_PTR, hostbuf=a)
         c_buffer = cl.Buffer(self.ctx, m_flag.WRITE_ONLY, a.nbytes)
-        # execute operation.
-        if (is_b_a_vector == True):
+
+        if is_b_a_vector:
             # Use `Add_two_vectors_GPU` Kernel.
             b_buffer = cl.Buffer(self.ctx, m_flag.READ_ONLY | m_flag.COPY_HOST_PTR, hostbuf=b)
             event = self.prg.Add_two_vectors_GPU(self.queue, (length,), None, c_buffer, a_buffer, b_buffer, np.uint32(length))
@@ -134,7 +121,6 @@ class clModule:
             # Use `Add_to_each_element_GPU` Kernel
             event = self.prg.Add_to_each_element_GPU(self.queue, (length,), None, c_buffer, a_buffer, np.float32(b), np.uint32(length))
 
-        
         # Wait for execution to complete.
         event.wait()
         # Copy output from GPU to CPU [Use enqueue_copy]
@@ -143,8 +129,7 @@ class clModule:
         # Record execution time.
         end = time.time()
         # return a tuple of output of addition and time taken to execute the operation.
-        return c, end - start
-        #pass
+        return c, (end - start)
 
     def CPU_numpy_Add(self, a, b, length, is_b_a_vector):
         """
@@ -173,8 +158,8 @@ class clModule:
 
         start = time.time()
         c = np.empty_like(a)
-        for index in np.arange(0,length):
-            if (is_b_a_vector == True):
+        for index in np.arange(0, length):
+            if is_b_a_vector:
                 c[index] = a[index] + b[index]
             else:
                 c[index] = a[index] + b
