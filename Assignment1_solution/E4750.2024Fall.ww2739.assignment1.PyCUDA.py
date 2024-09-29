@@ -14,8 +14,9 @@ Python Code
 
 # Import relevant libraries
 import numpy as np
-cudamodule=__import__('E4750.2024Fall.ww2739.assignment1.CudaModule')
-from cudamodule import CudaModule
+#cudamodule=__import__('E4750.2024Fall.ww2739.assignment1.CudaModule')
+#from cudamodule import CudaModule
+from CudaModule import CudaModule
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
@@ -196,7 +197,7 @@ if __name__ == "__main__":
         plt.legend()
         plt.xticks(valid_vector_sizes, [str(int(np.log10(x))) for x in valid_vector_sizes])
         plt.grid(True)
-        plt.show()
+        plt.savefig("cuda.png")
 
     # Now exclude the slower of the two CPU cases and extend the analysis to vector sizes up to 10^8
     valid_main_methods = [method for method in all_main_methods if method != 'CPU_Loop_Add']

@@ -15,8 +15,9 @@ The code in this file is part of the instructor-provided template for Assignment
 """
 
 # import clModule
-clmodule=__import__('E4750.2024Fall.ww2739.assignment1.clModule')
-from clmodule import clModule
+#clmodule=__import__('E4750.2024Fall.ww2739.assignment1.clModule')
+#from clmodule import clModule
+from clModule import ClModule
 import numpy as np
 import matplotlib.pyplot as plt
 
